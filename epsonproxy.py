@@ -1,4 +1,4 @@
-from ctypes import windll, c_int, create_string_buffer
+from ctypes import cdll,  c_int, create_string_buffer
 import json
 
 ID_TIPO_COMPROBANTE_TIQUET                = c_int( 1 ).value  # "83"  Tique
@@ -158,7 +158,7 @@ def ticket(datos_ticket):
     try :
 
         # get handle from DLL
-        Handle_HL = windll.LoadLibrary("./EpsonFiscalInterface.dll")
+        Handle_HL = cdll.LoadLibrary("./EpsonFiscalInterface.so")
 
         # # connect
         ###Handle_HL.ConfigurarVelocidad( c_int(9600).value )

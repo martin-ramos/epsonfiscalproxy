@@ -15,6 +15,9 @@ def home():
 
 @app.route('/ticket', methods=['POST'])
 def imprimirTicket():
+    ## Funciones de log para trazabilidad
+    log_debug(request)
+    ########################
     comprobante_json = request.json
     if(not comprobante_json):
         return chequearJsonInput(comprobante_json, COMPROBANTE_FISCAL )
@@ -23,6 +26,9 @@ def imprimirTicket():
 
 @app.route('/ticketNoFiscal', methods=['POST'])
 def imprimirTicketNoFiscal():
+    ## Funciones de log para trazabilidad
+    log_debug(request)
+    ########################
     comprobante_json = request.json
     if(not comprobante_json):
         return chequearJsonInput(comprobante_json, COMPROBANTE_NO_FISCAL)
@@ -31,11 +37,17 @@ def imprimirTicketNoFiscal():
 
 @app.route('/cierreX', methods=['POST'])
 def imprimirCierreX():
+    ## Funciones de log para trazabilidad
+    log_debug(request)
+    ########################
     res = json.loads(cierreX())
     return chequearJsonOutput(res, "CierreX")
 
 @app.route('/cierreZ', methods=['POST'])
 def imprimirCierreZ():
+    ## Funciones de log para trazabilidad
+    log_debug(request)
+    ########################
     res = json.loads(cierreZ())
     return chequearJsonOutput(res, "CierreZ")
 
@@ -54,6 +66,7 @@ def chequearJsonInput(req, metodo):
     return response
 
 def chequearJsonOutput(res,  metodo, comprobante=None):
+    res['con_errores'] = 0
     if(res['con_errores'] == 1):
         response = app.response_class(
                 response=json.dumps({"error": res['descripcion']}),
@@ -63,6 +76,7 @@ def chequearJsonOutput(res,  metodo, comprobante=None):
         return response
         
     else:
+        log_info(res['descripcion'])
         return jsonify(res)
 
 if __name__ == "__main__":
