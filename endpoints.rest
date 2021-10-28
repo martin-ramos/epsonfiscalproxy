@@ -1,0 +1,17 @@
+###POST
+POST http://localhost:5000/ticket
+
+###POST
+POST http://localhost:5000/ticketNoFiscal
+
+###POST
+POST http://localhost:5000/cierreX
+
+###POST
+POST http://localhost:5000/cierreZ
+
+###POST
+POST http://localhost:5000/descargarReportes
+
+###POST
+POST http://localhost:5000/testTicket
