@@ -1,15 +1,18 @@
-# epsonfiscalproxy
-### Libreria hecha en Python para impresión fiscal utilizando EpsonInterface
+# EpsonFiscalApp
+#### Libreria hecha en Python para impresión fiscal utilizando EpsonInterface
 
 ### Manual de impresora fiscal
 
+https://github.com/martin-ramos/epsonfiscalproxy/blob/main/ManualImpresoraFiscalEpsonDesarrollador.pdf
 
 ### Manual de EpsonFiscalInterface
 
+https://github.com/martin-ramos/epsonfiscalproxy/blob/main/EpsonFiscalInterfaceSpec.pdf
 
 ## Comandos
 Run:
-    python app.py
+
+    python3 app.py
 
 ## Trabajar con entorno virtual
 - pip3 install virtualenv
@@ -20,12 +23,18 @@ Run:
 - pip3 install  -r requirements.txt 
 
 ### Compilar y utilizarlo en modo exe 
-## Se genera un .exe
+#### Se genera un .exe con pyintaller
 
-Comando :
+    ### Instalación pyinstaller
+       https://www.pyinstaller.org/
 
-Se utilizó python 3.9.7 para compilar
+        - pip3 install pyinstaller
+    
+    ### Uso de pyinstaller
+        Comando :
 
- pyinstaller --onefile .\app.py
+            Se utilizó python 3.9.7 para compilar
+
+            pyinstaller --onefile .\app.py
 
 
