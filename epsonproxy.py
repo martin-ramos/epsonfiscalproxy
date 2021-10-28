@@ -1,6 +1,4 @@
-import sys
-import binascii
-from ctypes import c_wchar_p, windll, byref, c_int, c_char, c_long, c_short, create_string_buffer
+from ctypes import windll, c_int, create_string_buffer
 import json
 
 ID_TIPO_COMPROBANTE_TIQUET                = c_int( 1 ).value  # "83"  Tique
@@ -153,98 +151,88 @@ AFIP_CODIGO_FORMA_DE_PAGO_TRANSFERENCIA_NO_BANCARIA           = c_int( 24 ).valu
 AFIP_CODIGO_FORMA_DE_PAGO_OTROS_MEDIOS_DE_PAGO                = c_int( 99 ).value
 
 
-
 # -----------------------------------------------------------------------------
 # Function: ticket
 # -----------------------------------------------------------------------------
-def ticket(datos):
+def ticket(datos_ticket):
+    try :
 
-    datos_ticket = json.loads(datos)
-    #title 
-    print("*** TICKET ***")
-    # get handle from DLL
-    Handle_HL = windll.LoadLibrary("C:\\EpsonFiscalInterface.dll")
+        # get handle from DLL
+        Handle_HL = windll.LoadLibrary("./EpsonFiscalInterface.dll")
 
-    # connect
-    ###Handle_HL.ConfigurarVelocidad( c_int(9600).value )
-    Handle_HL.ConfigurarPuerto( "0" )
-    error = Handle_HL.Conectar()
-    print("Connect               : "),
-    print(hex(error))
+        # # connect
+        ###Handle_HL.ConfigurarVelocidad( c_int(9600).value )
+        Handle_HL.ConfigurarPuerto( "0" )
+        ejecutarComando(Handle_HL, Handle_HL.Conectar())
+        
+        # # try cancel all
+        ejecutarComando(Handle_HL, Handle_HL.Cancelar())
 
-    # try cancel all
-    error = Handle_HL.Cancelar()
-    print("Cancel                : "),
-    print(hex(error))
+        # # open
+        ejecutarComando(Handle_HL, Handle_HL.AbrirComprobante( ID_TIPO_COMPROBANTE_TIQUET ))
+        ## Aca en esta funcion tenemos que poder evaluar los errores que puede arrojar
+        
+        # # get document number
+        str_doc_number_max_len = 20
+        str_doc_number = create_string_buffer( b'\000' * str_doc_number_max_len )
+        error = Handle_HL.ConsultarNumeroComprobanteActual( str_doc_number, c_int(str_doc_number_max_len).value )
+        print("Get Doc. Number Error : "),
+        print(error)
+        print("Doc Number            : "),
+        print(str_doc_number.value)
 
-    # open
-    error = Handle_HL.AbrirComprobante( ID_TIPO_COMPROBANTE_TIQUET )
-    ## Aca en esta funcion tenemos que poder evaluar los errores que puede arrojar
-    print("Open                  : "),
-    print(hex(error))
+        # # get document type
+        str_doc_type_max_len = 20
+        str_doc_type = create_string_buffer( b'\000' * str_doc_type_max_len )
+        print(str_doc_type)
+        error = Handle_HL.ConsultarTipoComprobanteActual( str_doc_type, c_int(str_doc_type_max_len).value )
+        print("Get Type Doc. Error   : "),
+        print(error)
+        print("Doc Type              : "),
+        print(str_doc_type.value)
 
-    # get document number
-    str_doc_number_max_len = 20
-    str_doc_number = create_string_buffer( b'\000' * str_doc_number_max_len )
-    error = Handle_HL.ConsultarNumeroComprobanteActual( str_doc_number, c_int(str_doc_number_max_len).value )
-    print("Get Doc. Number Error : "),
-    print(error)
-    print("Doc Number            : "),
-    print(str_doc_number.value)
+        # item
+        #   imprimirItems(datos_ticket['items'], Handle_HL) 
+        for item in datos_ticket['itemsComprobante'] :
+        # error = Handle_HL.ImprimirItem( ID_MODIFICADOR_AGREGAR, "Sardinas", "1", "100.1234", ID_TASA_IVA_EXENTO, ID_IMPUESTO_NINGUNO, "0", ID_CODIGO_INTERNO, "CodigoInterno4567890123456789012345678901234567890", "", AFIP_CODIGO_UNIDAD_MEDIDA_KILOGRAMO )
+            error = ejecutarComando(Handle_HL, Handle_HL.ImprimirItem( ID_MODIFICADOR_AGREGAR, enviar_texto(item["descripcion"]), enviar_texto(item['cantidad']), enviar_texto(item["importeOriginal"]), ID_TASA_IVA_EXENTO, ID_IMPUESTO_NINGUNO, "0", ID_CODIGO_INTERNO, enviar_texto(item["codigo"]), "", AFIP_CODIGO_UNIDAD_MEDIDA_UNIDAD))
+            print(str(item['cantidad'] + ' ' + item['descripcion'].ljust(40) + item['importeOriginal']))
+        
+        # subtotal
+        ejecutarComando(Handle_HL, Handle_HL.ImprimirSubtotal())
+        # print(datos_ticket["total"])
+        print(str("IMPORTE" + " ").ljust(42) + str(datos_ticket["total"]))
 
-    # get document type
-    str_doc_type_max_len = 20
-    str_doc_type = create_string_buffer( b'\000' * str_doc_type_max_len )
-    print(str_doc_type)
-    error = Handle_HL.ConsultarTipoComprobanteActual( str_doc_type, c_int(str_doc_type_max_len).value )
-    print("Get Type Doc. Error   : "),
-    print(error)
-    print("Doc Type              : "),
-    print(str_doc_type.value)
+        # get subtotal gross amount
+        str_subtotal_max_len = 20
+        str_subtotal = create_string_buffer( b'\000' * str_subtotal_max_len )
+        error = Handle_HL.ConsultarSubTotalBrutoComprobanteActual( str_subtotal, c_int(str_subtotal_max_len).value )
+        print("Get Subtotal Gross    : "),
+        print(error)
+        print("Subtotal Gross Amount : "),
+        print(str_subtotal.value)
 
-    # item
-    #   imprimirItems(datos_ticket['items'], Handle_HL) 
-    for item in datos_ticket['items'] :
-    # error = Handle_HL.ImprimirItem( ID_MODIFICADOR_AGREGAR, "Sardinas", "1", "100.1234", ID_TASA_IVA_EXENTO, ID_IMPUESTO_NINGUNO, "0", ID_CODIGO_INTERNO, "CodigoInterno4567890123456789012345678901234567890", "", AFIP_CODIGO_UNIDAD_MEDIDA_KILOGRAMO )
-        error = Handle_HL.ImprimirItem( ID_MODIFICADOR_AGREGAR, enviar_texto(item["descripcion"]), enviar_texto(item['cantidad']), enviar_texto(item["importe"]), ID_TASA_IVA_EXENTO, ID_IMPUESTO_NINGUNO, "0", ID_CODIGO_INTERNO, enviar_texto(item["codigo"]), "", AFIP_CODIGO_UNIDAD_MEDIDA_UNIDAD)
-    print("Item                  : "),
-    print(hex(error))
+        # get subtotal gross amount
+        str_subtotal_max_len = 20
+        str_subtotal = create_string_buffer( b'\000' * str_subtotal_max_len )
+        print("como imprime:" + str(str_subtotal))
+        error = Handle_HL.ConsultarSubTotalNetoComprobanteActual( str_subtotal, c_int(str_subtotal_max_len).value )
+        print("Get Subtotal Net      : "),
+        print(error)
+        print("Subtotal Net Amount   : "),
+        print(str_subtotal.value)
 
-    # subtotal
-    error = Handle_HL.ImprimirSubtotal()
-    print("Subtotal              : "),
-    print(hex(error))
+        # close
+        ejecutarComando(Handle_HL, Handle_HL.CerrarComprobante())
+        res = {"con_errores": 0, "descripcion": "OK"}
 
-    # get subtotal gross amount
-    str_subtotal_max_len = 20
-    str_subtotal = create_string_buffer( b'\000' * str_subtotal_max_len )
-    error = Handle_HL.ConsultarSubTotalBrutoComprobanteActual( str_subtotal, c_int(str_subtotal_max_len).value )
-    print("Get Subtotal Gross    : "),
-    print(error)
-    print("Subtotal Gross Amount : "),
-    print(str_subtotal.value)
-
-    # get subtotal gross amount
-    str_subtotal_max_len = 20
-    str_subtotal = create_string_buffer( b'\000' * str_subtotal_max_len )
-    print("como imprime:" + str(str_subtotal))
-    error = Handle_HL.ConsultarSubTotalNetoComprobanteActual( str_subtotal, c_int(str_subtotal_max_len).value )
-    print("Get Subtotal Net      : "),
-    print(error)
-    print("Subtotal Net Amount   : "),
-    print(str_subtotal.value)
-
-    # close
-    error = Handle_HL.CerrarComprobante()
-    print("Close                 : "),
-    print(error)
-
-    # disconect
-    error = Handle_HL.Desconectar()
-    print("Disconect             : "),
-    print(error)
-
-
+    except Exception as err : 
+        res = {"con_errores": 1, "descripcion": str(err)}
+    
+    finally:
+        ejecutarComando(Handle_HL, Handle_HL.Desconectar())
+        return json.dumps(res)
+        
 
 ## Formato de datos de ticket
 # ticket_str = "{'cliente': 'Martin Ramos'}"
@@ -253,72 +241,41 @@ def ticket(datos):
 #             #     [{    "descripcion": "Coca Cola"
 #             #         , "importe": "120.00"}
 #             #     ]}
-def ticket_no_fiscal(datos):
+def ticket_no_fiscal(datos_ticket):
+    try :
 
-    datos_ticket = json.loads(datos)
+        # get handle from DLL
+        Handle_HL = windll.LoadLibrary("./EpsonFiscalInterface.dll")
 
-    print(datos_ticket)
+        # connect
+        ###Handle_HL.ConfigurarVelocidad( c_int(9600).value )
+        Handle_HL.ConfigurarPuerto( "0" )
+        ejecutarComando(Handle_HL, Handle_HL.Conectar())
+
+        # try cancel all
+        ejecutarComando(Handle_HL, Handle_HL.Cancelar())
+        
+        # open
+        ejecutarComando(Handle_HL, Handle_HL.AbrirComprobante( ID_TIPO_COMPROBANTE_NO_FISCAL ))
+
+        ejecutarComando(Handle_HL, Handle_HL.ImprimirTextoLibre(enviar_texto("Numero: " + str(datos_ticket['numero']))))
+        ejecutarComando(Handle_HL, Handle_HL.ImprimirTextoLibre(enviar_texto(datos_ticket['cliente'])))
+        imprimirItems(datos_ticket['itemsComprobante'], Handle_HL)
+
+        # subtotal
+        ejecutarComando(Handle_HL, Handle_HL.ImprimirTextoLibre(enviar_texto(str("IMPORTE" + " ").ljust(40) + str(datos_ticket['total']))))
+
+        # close
+        ejecutarComando(Handle_HL, Handle_HL.CerrarComprobante())
+
+        res = {"con_errores": 0, "descripcion": 'OK'}
+
+    except Exception as err : 
+        res = {"con_errores": 1, "descripcion": str(err)}
     
-    #title 
-    print("*** TICKET NO FISCAL ***")
-
-    # get handle from DLL
-    Handle_HL = windll.LoadLibrary("C:\\EpsonFiscalInterface.dll")
-
-    # connect
-    ###Handle_HL.ConfigurarVelocidad( c_int(9600).value )
-    Handle_HL.ConfigurarPuerto( "0" )
-    error = Handle_HL.Conectar()
-    print("Connect               : "),
-    print(hex(error))
-
-    # try cancel all
-    error = Handle_HL.Cancelar()
-    print("Cancel                : "),
-    print(hex(error))
-
-    # open
-    error = Handle_HL.AbrirComprobante( ID_TIPO_COMPROBANTE_NO_FISCAL )
-    print("Open                  : "),
-    print(error)
-
-    # get document number
-    str_doc_number_max_len = 20
-    str_doc_number = create_string_buffer( b'\000' * str_doc_number_max_len )
-    error = Handle_HL.ConsultarNumeroComprobanteActual( str_doc_number, c_int(str_doc_number_max_len).value )
-    print("Get Doc. Number Error : "),
-    print(error)
-    print("Doc Number            : "),
-    print(str_doc_number.value)
-
-    # get document type
-    str_doc_type_max_len = 20
-    str_doc_type = create_string_buffer( b'\000' * str_doc_type_max_len )
-    error = Handle_HL.ConsultarTipoComprobanteActual( str_doc_type, c_int(str_doc_type_max_len).value )
-    print("Get Type Doc. Error   : "),
-    print(error)
-    print("Doc Type              : "),
-    print(str_doc_type.value)
-    ##cliente = create_string_buffer(enviar_texto(datos_ticket['cliente']))
-    # error = Handle_HL.ImprimirTextoLibre(str(datos_ticket['cliente']))
-    error = Handle_HL.ImprimirTextoLibre(enviar_texto(datos_ticket['cliente']))
-    imprimirItems(datos_ticket['items'], Handle_HL)
-    
-
-    # subtotal
-    error = Handle_HL.ImprimirTextoLibre(enviar_texto(str("IMPORTE" + " ").ljust(40) + datos_ticket['total']))
-    print("Subtotal              : "),
-    print(error)
-
-    # close
-    error = Handle_HL.CerrarComprobante()
-    print("Close                 : "),
-    print(error)
-
-    # disconect
-    error = Handle_HL.Desconectar()
-    print("Disconect             : "),
-    print(error)
+    finally:
+        ejecutarComando(Handle_HL, Handle_HL.Desconectar())
+        return json.dumps(res)
 
 def enviar_texto(string) :
     return string.encode('ascii')
@@ -326,7 +283,7 @@ def enviar_texto(string) :
 
 def imprimirItems(datos_items, Handle_HL) :
     for item in datos_items :
-        error = Handle_HL.ImprimirTextoLibre(enviar_texto(str(item['cantidad'] + ' ' + item['descripcion'].ljust(40) + item['importe'])))    
+        ejecutarComando(Handle_HL, Handle_HL.ImprimirTextoLibre(enviar_texto(str(item['cantidad'] + ' ' + item['descripcion'].ljust(40) + item['importeOriginal']))))    
   
 def encabezado()  :
     #title 
@@ -337,7 +294,7 @@ def encabezado()  :
 
     # connect
     ###Handle_HL.ConfigurarVelocidad( c_int(9600).value )
-    Handle_HL.ConfigurarPuerto( "0" )
+    Handle_HL.ConfigurarPuerto( "0")
     error = Handle_HL.Conectar()
     print("Connect               : "),
     print(hex(error))
@@ -389,48 +346,64 @@ def descargar_reportes() :
 def cierreZ():
         #title 
     print("*** Haciendo Cierre Z ***")
+    try :
+        # get handle from DLL
+        Handle_HL = windll.LoadLibrary("./EpsonFiscalInterface.dll")
 
-    # get handle from DLL
-    Handle_HL = windll.LoadLibrary("C:\\EpsonFiscalInterface.dll")
+        # connect
+        ###Handle_HL.ConfigurarVelocidad( c_int(9600).value )
+        error = Handle_HL.ConfigurarPuerto( "0" )
+        ejecutarComando(Handle_HL, Handle_HL.Conectar())
+        
+        # try cancel all
+        ejecutarComando(Handle_HL, Handle_HL.Cancelar())
 
-    # connect
-    ###Handle_HL.ConfigurarVelocidad( c_int(9600).value )
-    Handle_HL.ConfigurarPuerto( "0" )
-    error = Handle_HL.Conectar()
-    print("Connect               : "),
-    print(hex(error))
+        ejecutarComando(Handle_HL, Handle_HL.ImprimirCierreZ())
+        res = {"con_errores": 0, "descripcion": 'OK'}
 
-    # try cancel all
-    error = Handle_HL.Cancelar()
-    print("Cancel                : "),
-    print(hex(error))
-
-    error = Handle_HL.ImprimirCierreZ()
-    print("Descargando Auditoria: "),
-    print(hex(error))
+    except Exception as err : 
+        res = {"con_errores": 1, "descripcion": str(err)}
+    
+    finally:
+        ejecutarComando(Handle_HL, Handle_HL.Desconectar())
+        return json.dumps(res)
 
 def cierreX():
-        #title 
     print("*** Haciendo Cierre X ***")
+    try :
+        # get handle from DLL
+        Handle_HL = windll.LoadLibrary("./EpsonFiscalInterface.dll")
 
-    # get handle from DLL
-    Handle_HL = windll.LoadLibrary("C:\\EpsonFiscalInterface.dll")
+        # connect
+        error = Handle_HL.ConfigurarPuerto( "0" )
+        ejecutarComando(Handle_HL, Handle_HL.Conectar())
+        
+        # try cancel all
+        ejecutarComando(Handle_HL, Handle_HL.Cancelar())
 
-    # connect
-    ###Handle_HL.ConfigurarVelocidad( c_int(9600).value )
-    Handle_HL.ConfigurarPuerto( "0" )
-    error = Handle_HL.Conectar()
-    print("Connect               : "),
-    print(hex(error))
+        ejecutarComando(Handle_HL, Handle_HL.ImprimirCierreX())
+        
+        res = {"con_errores": 0, "descripcion": 'OK'}
 
-    # try cancel all
-    error = Handle_HL.Cancelar()
-    print("Cancel                : "),
-    print(hex(error))
+    except Exception as err : 
+        res = {"con_errores": 1, "descripcion": str(err)}
 
-    error = Handle_HL.ImprimirCierreX()
-    print("Descargando Auditoria: "),
-    print(hex(error))
+    finally:
+        ejecutarComando(Handle_HL, Handle_HL.Desconectar())
+        return json.dumps(res)
+
+def ejecutarComando(Handle_HL, comando) :
+    ### En caso que el hexa sea 0x0 o bien 0x05000024
+    if not (comando == 0 or comando == 83886116 or comando == 83886127) :
+      print("Es esto:" + str(comando))
+      raise ValueError(verificarError(Handle_HL, comando))
+
+
+def verificarError(Handle_HL, error) :
+    descripcion_error =  create_string_buffer(b'\000' * 500)
+    error = Handle_HL.ConsultarDescripcionDeError(error, descripcion_error, c_int(500).value)
+    
+    return str(descripcion_error.value)[1:]
 
 def reportes() :
     print("*** Reportes ***")
@@ -455,44 +428,62 @@ def reportes() :
     print("Reporte                : "),
     print(hex(error))
 
-# -----------------------------------------------------------------------------
-# main
-# -----------------------------------------------------------------------------
-print(" ")
-print(" ")
-print("----Basic Test")
-# dll_version()
-# dll_ll_test_comm()
-# equipment_machine_version()
-# print_X_and_Z()
-# set_and_get_header_trailer()
-# set_and_get_datetime()
-# cancel_all()
-print(" ")
-print(" ")
-print("----Testing Sales")
+def pruebaTicket(datos_ticket):
+    try :
+        Handle_HL = windll.LoadLibrary("./EpsonFiscalInterface.dll")
+
+        for item in datos_ticket['itemsComprobante'] :
+            print(str(item['cantidad'] + ' ' + item['descripcion'].ljust(40) + item['importeOriginal']))
+
+        print(str("IMPORTE" + " ").ljust(42) + str(datos_ticket["total"]))
+        raise ValueError("Esto es un error de prueba")
+        res = {"con_errores": 0, "descripcion": "OK"}
+
+    except Exception as err : 
+        res = {"con_errores": 1, "descripcion": str(err)}
+    
+    finally:
+        return json.dumps(res)
+
+# # -----------------------------------------------------------------------------
+# # main
+# # -----------------------------------------------------------------------------
+# print(" ")
+# print(" ")
+# print("----Basic Test")
+# # dll_version()
+# # dll_ll_test_comm()
+# # equipment_machine_version()
+# # print_X_and_Z()
+# # set_and_get_header_trailer()
+# # set_and_get_datetime()
+# # cancel_all()
+# print(" ")
+# print(" ")
+# print("----Testing Sales")
 
 
-##encabezado()
-# ticket_str = '{"cliente": "Martin Ramos", "items": [{"cantidad":"2", "codigo":"123456789", "descripcion": "coca cola", "importe": "120.00"}], "total": "240"}'
-# ticket(ticket_str)
-# ticket_no_fiscal(ticket_str)
-# cierreZ()
+# ##encabezado()
+# # ticket_str = '{"cliente": "Martin Ramos", "items": [{"cantidad":"2", "codigo":"123456789", "descripcion": "coca cola", "importe": "120.00"}], "total": "240"}'
+# # ticket(ticket_str)
+# # ticket_no_fiscal(ticket_str)
+# # cierreZ()
+# # cierreX()
+# # descargar_reportes()
+# #prueba_json(ticket_str)
+
 # cierreX()
-# descargar_reportes()
-#prueba_json(ticket_str)
 
-reportes()
 
-# ticket_from_ticket_invoice()
-# ticket_invoice()
-# ticket_invoice_B()
-# ticket_debit_note()
-# ticket_debit_note_B()
-# ticket_credit_note()
-# ticket_credit_note_B()
-print(" ")
-print(" ")
-print("----Test Close Day")
-# audit()
-# download()
+# # ticket_from_ticket_invoice()
+# # ticket_invoice()
+# # ticket_invoice_B()
+# # ticket_debit_note()
+# # ticket_debit_note_B()
+# # ticket_credit_note()
+# # ticket_credit_note_B()
+# print(" ")
+# print(" ")
+# print("----Test Close Day")
+# # audit()
+# # download()
