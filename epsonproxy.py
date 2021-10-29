@@ -1,5 +1,11 @@
-from ctypes import cdll,  c_int, create_string_buffer
+from ctypes import c_int, create_string_buffer
 import json
+import platform
+
+if platform.system() == "Linux" :
+    from ctypes import cdll
+else :
+    from ctypes import windll
 
 ID_TIPO_COMPROBANTE_TIQUET                = c_int( 1 ).value  # "83"  Tique
 ID_TIPO_COMPROBANTE_TIQUE_FACTURA         = c_int( 2 ).value  # "81"  Tique Factura A, "82" Tique Factura B, "111" Tique Factura C, "118" Tique Factura M
@@ -150,7 +156,13 @@ AFIP_CODIGO_FORMA_DE_PAGO_TRANSFERENCIA_BANCARIA              = c_int( 23 ).valu
 AFIP_CODIGO_FORMA_DE_PAGO_TRANSFERENCIA_NO_BANCARIA           = c_int( 24 ).value
 AFIP_CODIGO_FORMA_DE_PAGO_OTROS_MEDIOS_DE_PAGO                = c_int( 99 ).value
 
-
+def cargarLibreria() :
+    sistema = platform.system()
+    if sistema == "Linux" :
+        return cdll.LoadLibrary("./EpsonFiscalInterface.so")
+    else :
+        if sistema == "Windows" :
+            return windll.LoadLibrary("./EpsonFiscalInterface.dll")
 # -----------------------------------------------------------------------------
 # Function: ticket
 # -----------------------------------------------------------------------------
@@ -158,7 +170,7 @@ def ticket(datos_ticket):
     try :
 
         # get handle from DLL
-        Handle_HL = cdll.LoadLibrary("./EpsonFiscalInterface.so")
+        Handle_HL = cargarLibreria()
 
         # # connect
         ###Handle_HL.ConfigurarVelocidad( c_int(9600).value )
@@ -224,7 +236,7 @@ def ticket(datos_ticket):
 
         # close
         ejecutarComando(Handle_HL, Handle_HL.CerrarComprobante())
-        res = {"con_errores": 0, "descripcion": "OK"}
+        res = {"con_errores": 0, "descripcion": "OK", "numero": str(str_doc_number.value)[2:-1]}
 
     except Exception as err : 
         res = {"con_errores": 1, "descripcion": str(err)}
@@ -245,7 +257,7 @@ def ticket_no_fiscal(datos_ticket):
     try :
 
         # get handle from DLL
-        Handle_HL = windll.LoadLibrary("./EpsonFiscalInterface.dll")
+        Handle_HL = cargarLibreria()
 
         # connect
         ###Handle_HL.ConfigurarVelocidad( c_int(9600).value )
@@ -290,7 +302,7 @@ def encabezado()  :
     print("*** Seteando Encabezado ***")
 
     # get handle from DLL
-    Handle_HL = windll.LoadLibrary("C:\\EpsonFiscalInterface.dll")
+    Handle_HL = cargarLibreria()
 
     # connect
     ###Handle_HL.ConfigurarVelocidad( c_int(9600).value )
@@ -319,7 +331,7 @@ def descargar_reportes() :
     print("*** Seteando Encabezado ***")
 
     # get handle from DLL
-    Handle_HL = windll.LoadLibrary("C:\\EpsonFiscalInterface.dll")
+    Handle_HL = cargarLibreria()
 
     # connect
     ###Handle_HL.ConfigurarVelocidad( c_int(9600).value )
@@ -347,8 +359,8 @@ def cierreZ():
         #title 
     print("*** Haciendo Cierre Z ***")
     try :
-        # get handle from DLL
-        Handle_HL = windll.LoadLibrary("./EpsonFiscalInterface.dll")
+        # get handle from.so
+        Handle_HL = cargarLibreria()
 
         # connect
         ###Handle_HL.ConfigurarVelocidad( c_int(9600).value )
@@ -371,8 +383,8 @@ def cierreZ():
 def cierreX():
     print("*** Haciendo Cierre X ***")
     try :
-        # get handle from DLL
-        Handle_HL = windll.LoadLibrary("./EpsonFiscalInterface.dll")
+        # get handle from.so
+        Handle_HL = cargarLibreria()
 
         # connect
         error = Handle_HL.ConfigurarPuerto( "0" )
@@ -395,7 +407,6 @@ def cierreX():
 def ejecutarComando(Handle_HL, comando) :
     ### En caso que el hexa sea 0x0 o bien 0x05000024
     if not (comando == 0 or comando == 83886116 or comando == 83886127) :
-      print("Es esto:" + str(comando))
       raise ValueError(verificarError(Handle_HL, comando))
 
 
@@ -409,7 +420,7 @@ def reportes() :
     print("*** Reportes ***")
 
     # get handle from DLL
-    Handle_HL = windll.LoadLibrary("C:\\EpsonFiscalInterface.dll")
+    Handle_HL = cargarLibreria()
 
     # connect
     ###Handle_HL.ConfigurarVelocidad( c_int(9600).value )
@@ -430,7 +441,7 @@ def reportes() :
 
 def pruebaTicket(datos_ticket):
     try :
-        Handle_HL = windll.LoadLibrary("./EpsonFiscalInterface.dll")
+        Handle_HL = cargarLibreria()
 
         for item in datos_ticket['itemsComprobante'] :
             print(str(item['cantidad'] + ' ' + item['descripcion'].ljust(40) + item['importeOriginal']))
