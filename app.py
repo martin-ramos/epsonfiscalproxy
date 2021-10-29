@@ -66,7 +66,6 @@ def chequearJsonInput(req, metodo):
     return response
 
 def chequearJsonOutput(res,  metodo, comprobante=None):
-    res['con_errores'] = 0
     if(res['con_errores'] == 1):
         response = app.response_class(
                 response=json.dumps({"error": res['descripcion']}),

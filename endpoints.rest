@@ -2,12 +2,17 @@
 POST http://localhost:5000/ticket
 content-type: application/json
 
-{"cliente": "Martin Ramos"
-    , "Importe": "100.00"
-    , "Items": 
+{"cliente": "Martin Ramos",
+    "numero": "1", 
+    "total": "120"
+    , "importe": "100.00"
+    , "itemsComprobante": 
         [
-            {    "descripcion": "Coca Cola"
-                //, "importe": "120.00"
+            {    "descripcion": "Caña con azúcar"
+                , "importeOriginal": "120.00"
+                , "cantidad" : "2"
+                , "codigo" : "1234"
+                , "fecha_generacion": "2021-01-01"
             }
         ]
 }
@@ -23,16 +28,20 @@ POST http://localhost:5000/ticketNoFiscal
 POST http://localhost:5000/ticketNoFiscal
 content-type: application/json
 
-{"cliente": "Martin Ramos"
-    , "Importe": "100.00"
-    , "Items": 
+{"cliente": "Martin Ramos",
+    "numero": "1", 
+    "total": "120"
+    , "importe": "100.00"
+    , "itemsComprobante": 
         [
-            {    "descripcion": "Coca Cola"
-                //, "importe": "120.00"
+            {    "descripcion": "Caña con azúcar"
+                , "importeOriginal": "120.00"
+                , "cantidad" : "2"
+                , "codigo" : "1234"
+                , "fecha_generacion": "2021-01-01"
             }
         ]
 }
-
 ###POST
 POST http://localhost:5000/cierreX
 
